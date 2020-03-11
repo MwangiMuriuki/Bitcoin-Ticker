@@ -7,12 +7,16 @@
 //
 
 import UIKit
+import Alamofire
+import SwiftyJSON
 
 class ViewController: UIViewController, UIPickerViewDataSource, UIPickerViewDelegate {
     
     let baseURL = "https://apiv2.bitcoinaverage.com/indices/global/ticker/BTC"
     let currencyArray = ["AUD", "BRL","CAD","CNY","EUR","GBP","HKD","IDR","ILS","INR","JPY","MXN","NOK","NZD","PLN","RON","RUB","SEK","SGD","USD","ZAR"]
+    let currencySymbol = ["$", "R$", "$", "¥", "€", "£", "$", "Rp", "₪", "₹", "¥", "$", "kr", "$", "zł", "lei", "₽", "kr", "$", "$", "R"]
     var finalURL = ""
+    let api_key = "NDYzZTliMmE3MTc4NDhmYWIzMDMxOWIxZjE2MDgzNDg"
     
     @IBOutlet weak var priceLabel: UILabel!
     
@@ -32,7 +36,6 @@ class ViewController: UIViewController, UIPickerViewDataSource, UIPickerViewDele
         return 1
     }
     
-    
     func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
         return currencyArray.count
     }
@@ -40,17 +43,73 @@ class ViewController: UIViewController, UIPickerViewDataSource, UIPickerViewDele
     func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
         return currencyArray[row]
     }
+    
     func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
 
         let currencyName = currencyArray[row]
+        let symbol = currencySymbol[row]
         
         print(currencyName)
         
         finalURL = baseURL + currencyName
         
         print(finalURL)
+        
+        let headers: HTTPHeaders = [
+          "x-ba-key": api_key,
+          "Accept": "application/json"
+        ]
+
+        getBitCoinValues(url: finalURL, headers: headers)
     }
+    
+        //MARK: - Networking
+        /***************************************************************/
+   
+    
+    func getBitCoinValues(url: String, headers: HTTPHeaders){
+        
+        Alamofire.request(url, method: .get, headers: headers)
+            .responseJSON { response in
+            
+            if response.result.isSuccess{
+                
+                print("Success! Got the Bitcoin data")
+                
+                let bitcoinJSON : JSON = JSON(response.result.value!)
+                
+                self.updateBitcoinData(json: bitcoinJSON)
+                
+            } else{
+                
+                print("Error: \(String(describing: response.result.error))")
+            
+                self.priceLabel.text = "Connection Issues"
+                
+                
+            }
+        }
+        
+        
+    }
+    
 
-
+        //MARK: - JSON Parsing
+        /***************************************************************/
+    
+        func updateBitcoinData(json : JSON) {
+    
+            if let bitcoinResult = json["ask"].double {
+                
+                priceLabel.text = String(bitcoinResult)
+                
+            }else{
+                
+                 priceLabel.text = "Price Unavailable"
+            }
+    
+        }
+            
+            
 }
 
